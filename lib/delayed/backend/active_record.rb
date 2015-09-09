@@ -76,8 +76,11 @@ module Delayed
             now = now.change(usec: 0)
             # This works on MySQL and possibly some other DBs that support
             # UPDATE...LIMIT. It uses separate queries to lock and return the job
-            count = ready_scope.limit(1).update_all(locked_at: now, locked_by: worker.name)
-            return nil if count == 0
+            count = ready_scope.limit(1)
+            return nil if count.count == 0
+            #we're limiting to one record, or ids would be an array here
+            ids=count.first.id
+            where(id: ids).update_all(locked_at: now, locked_by: worker.name)
             where(locked_at: now, locked_by: worker.name, failed_at: nil).first
           when "MSSQL", "Teradata"
             # The MSSQL driver doesn't generate a limit clause when update_all
